@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>夢小説カードゲーム</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f0ece4;
+  --paper:#faf8f4;
+  --ink:#1a1410;
+  --ink-light:#6b5e52;
+  --ability:#c0392b;
+  --ability-bg:#fdf0ef;
+  --location:#1a6b8a;
+  --location-bg:#edf6fa;
+  --relationship:#2d7a3a;
+  --relationship-bg:#edf7ef;
+  --item:#c47a1a;
+  --item-bg:#fdf5e6;
+  --accident:#4a1a6b;
+  --accident-bg:#f4edfb;
+  --win-bar:#e8c847;
+  --radius:10px;
+}
+
+body{
+  font-family:'Zen Maru Gothic',sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(192,57,43,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(26,107,138,0.04) 0%, transparent 50%);
+}
+
+/* SCREENS */
+.screen{display:none}
+.screen.active{display:flex;flex-direction:column;min-height:100vh}
+
+/* ===== LOGIN ===== */
+#screen-login{
+  align-items:center;justify-content:center;
+  gap:28px;padding:40px 20px;
+}
+.game-title{
+  text-align:center;
+}
+.game-title h1{
+  font-size:1.9rem;font-weight:900;
+  line-height:1.15;letter-spacing:-0.01em;
+  color:var(--ink);
+}
+.game-title h1 em{
+  font-style:normal;
+  background:linear-gradient(135deg,var(--ability),var(--accident));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.game-title p{
+  margin-top:6px;font-size:0.8rem;
+  color:var(--ink-light);letter-spacing:0.04em;
+}
+
+.login-card{
+  background:var(--paper);
+  border-radius:16px;
+  padding:28px 24px;
+  width:100%;max-width:360px;
+  display:flex;flex-direction:column;gap:16px;
+  box-shadow:0 2px 20px rgba(26,20,16,0.08),0 0 0 1px rgba(26,20,16,0.06);
+}
+.field-group{display:flex;flex-direction:column;gap:6px}
+.field-group label{font-size:0.72rem;font-weight:700;color:var(--ink-light);letter-spacing:0.06em;text-transform:uppercase}
+.login-card input{
+  background:var(--bg);border:1.5px solid rgba(26,20,16,0.15);
+  border-radius:8px;color:var(--ink);padding:10px 14px;
+  font-family:inherit;font-size:0.95rem;outline:none;
+  transition:border-color 0.2s;width:100%;
+}
+.login-card input:focus{border-color:var(--ink)}
+.divider{
+  display:flex;align-items:center;gap:10px;
+  color:var(--ink-light);font-size:0.75rem;
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(26,20,16,0.12)}
+
+.btn{
+  padding:11px 20px;border-radius:8px;border:none;
+  font-family:inherit;font-size:0.9rem;font-weight:700;
+  cursor:pointer;transition:all 0.15s;letter-spacing:0.02em;
+}
+.btn-primary{background:var(--ink);color:var(--paper)}
+.btn-primary:hover{background:#2d2420;transform:translateY(-1px)}
+.btn-secondary{background:transparent;color:var(--ink);border:1.5px solid rgba(26,20,16,0.2)}
+.btn-secondary:hover{border-color:var(--ink)}
+.btn-accent{background:var(--ability);color:white}
+.btn-accent:hover{background:#a93226}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important}
+
+/* ===== WAITING ===== */
+#screen-waiting{align-items:center;justify-content:center;gap:20px;padding:40px 20px}
+.room-box{
+  background:var(--paper);border-radius:16px;padding:28px 32px;
+  text-align:center;box-shadow:0 2px 20px rgba(26,20,16,0.08);
+  min-width:260px;
+}
+.room-box .label{font-size:0.72rem;font-weight:700;color:var(--ink-light);letter-spacing:0.08em;margin-bottom:6px}
+.room-box .room-id{
+  font-family:'Share Tech Mono',monospace;
+  font-size:3rem;letter-spacing:0.15em;color:var(--ink);
+}
+.player-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px}
+.player-item{
+  background:var(--paper);border-radius:8px;padding:10px 14px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 1px 4px rgba(26,20,16,0.06);font-size:0.9rem;
+}
+.player-dot{width:7px;height:7px;border-radius:50%;background:#2d7a3a;flex-shrink:0}
+.you-badge{
+  margin-left:auto;font-size:0.65rem;background:var(--ink);
+  color:var(--paper);padding:2px 7px;border-radius:20px;
+}
+
+/* ===== GAME ===== */
+#screen-game{padding:0;gap:0}
+
+.game-header{
+  background:var(--paper);padding:10px 16px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid rgba(26,20,16,0.1);flex-shrink:0;
+  position:sticky;top:0;z-index:10;
+}
+.game-header h2{font-size:0.9rem;font-weight:700;flex:1}
+.phase-badge{
+  font-size:0.72rem;font-weight:700;padding:4px 10px;
+  border-radius:20px;background:var(--ink);color:var(--paper);
+  letter-spacing:0.04em;
+}
+
+.game-body{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0}
+
+/* アクシデント */
+.accident-zone{
+  background:var(--accident-bg);
+  border-bottom:2px solid rgba(74,26,107,0.15);
+  padding:16px;
+}
+.zone-label{
+  font-size:0.68rem;font-weight:700;letter-spacing:0.08em;
+  margin-bottom:10px;text-transform:uppercase;
+}
+.accident-zone .zone-label{color:var(--accident)}
+
+.accident-card{
+  background:white;border-radius:10px;padding:14px 16px;
+  border:2px solid rgba(74,26,107,0.25);
+  display:inline-flex;align-items:flex-start;gap:10px;
+  max-width:100%;
+}
+.accident-card .cat-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--accident);
+  flex-shrink:0;margin-top:4px;
+}
+.accident-card .card-text{font-size:1rem;font-weight:700;line-height:1.4}
+
+/* 場 */
+.field-zone{
+  flex:1;padding:14px 16px;
+  background:var(--bg);
+}
+.field-zone .zone-label{color:var(--ink-light)}
+
+.plays-list{display:flex;flex-direction:column;gap:12px}
+.play-entry{
+  background:var(--paper);border-radius:10px;padding:12px 14px;
+  box-shadow:0 1px 6px rgba(26,20,16,0.06);
+}
+.play-entry-header{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+}
+.play-entry-name{font-size:0.8rem;font-weight:700}
+.play-cards-row{display:flex;flex-wrap:wrap;gap:6px}
+
+/* カードチップ */
+.card-chip{
+  border-radius:6px;padding:5px 10px;
+  font-size:0.78rem;font-weight:700;line-height:1.3;
+  border:1.5px solid transparent;display:inline-flex;align-items:center;gap:5px;
+}
+.card-chip.ability{background:var(--ability-bg);color:var(--ability);border-color:rgba(192,57,43,0.2)}
+.card-chip.location{background:var(--location-bg);color:var(--location);border-color:rgba(26,107,138,0.2)}
+.card-chip.relationship{background:var(--relationship-bg);color:var(--relationship);border-color:rgba(45,122,58,0.2)}
+.card-chip.item{background:var(--item-bg);color:var(--item);border-color:rgba(196,122,26,0.2)}
+.card-chip .chip-cat{font-size:0.62rem;opacity:0.7;font-weight:400}
+
+.empty-msg{font-size:0.83rem;color:var(--ink-light);padding:8px 0}
+
+/* 手札 */
+.hand-zone{
+  background:var(--paper);
+  border-top:2px solid rgba(26,20,16,0.1);
+  padding:14px 16px 20px;flex-shrink:0;
+}
+.hand-zone .zone-label{color:var(--ink-light);margin-bottom:12px}
+
+.hand-section{margin-bottom:12px}
+.hand-section-title{
+  font-size:0.68rem;font-weight:700;letter-spacing:0.06em;
+  margin-bottom:7px;
+}
+.hand-section-title.ability{color:var(--ability)}
+.hand-section-title.location{color:var(--location)}
+.hand-section-title.relationship{color:var(--relationship)}
+.hand-section-title.item{color:var(--item)}
+
+.hand-row{display:flex;gap:7px;flex-wrap:wrap}
+
+.hand-card{
+  border-radius:8px;padding:8px 12px;
+  font-size:0.82rem;font-weight:700;line-height:1.3;
+  cursor:pointer;border:2px solid transparent;
+  transition:all 0.15s;position:relative;
+  max-width:calc(50% - 4px);text-align:left;
+}
+.hand-card.ability{background:var(--ability-bg);color:var(--ability)}
+.hand-card.location{background:var(--location-bg);color:var(--location)}
+.hand-card.relationship{background:var(--relationship-bg);color:var(--relationship)}
+.hand-card.item{background:var(--item-bg);color:var(--item)}
+
+.hand-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(26,20,16,0.12)}
+.hand-card.selected{border-color:currentColor;transform:translateY(-3px);box-shadow:0 4px 14px rgba(26,20,16,0.15)}
+.hand-card.used{opacity:0.35;cursor:not-allowed;transform:none!important}
+.hand-card .played-mark{
+  position:absolute;top:4px;right:6px;
+  font-size:0.6rem;opacity:0.6;
+}
+
+.submitted-chips{margin-top:4px}
+.submitted-label{font-size:0.68rem;color:var(--ink-light);margin-bottom:4px}
+
+.play-action{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+
+/* 出したカード確認 */
+.my-played-preview{
+  background:var(--bg);border-radius:8px;padding:10px 12px;
+  margin-top:10px;border:1.5px dashed rgba(26,20,16,0.15);
+}
+.my-played-preview .preview-label{font-size:0.68rem;color:var(--ink-light);margin-bottom:7px;font-weight:700}
+.my-played-preview .preview-chips{display:flex;flex-wrap:wrap;gap:5px}
+
+/* ===== REVEAL ===== */
+#screen-reveal{align-items:center;padding:20px 16px;gap:16px}
+#screen-reveal h2{font-size:1.1rem;font-weight:900;text-align:center}
+.reveal-list{width:100%;max-width:500px;display:flex;flex-direction:column;gap:12px}
+.reveal-entry{
+  background:var(--paper);border-radius:12px;padding:14px 16px;
+  box-shadow:0 1px 8px rgba(26,20,16,0.07);
+}
+.reveal-entry-name{font-size:0.85rem;font-weight:700;margin-bottom:8px}
+.reveal-chips{display:flex;flex-wrap:wrap;gap:6px}
+
+/* ===== VOTE ===== */
+#screen-vote{align-items:center;padding:20px 16px;gap:20px}
+#screen-vote h2{font-size:1.1rem;font-weight:900;text-align:center}
+.vote-subtitle{font-size:0.82rem;color:var(--ink-light);text-align:center}
+.vote-list{width:100%;max-width:400px;display:flex;flex-direction:column;gap:10px}
+.vote-item{
+  background:var(--paper);border-radius:10px;padding:14px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 1px 6px rgba(26,20,16,0.06);
+  cursor:pointer;border:2px solid transparent;transition:all 0.15s;
+}
+.vote-item:hover{border-color:rgba(26,20,16,0.2)}
+.vote-item.voted{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.vote-item.disabled-vote{opacity:0.5;cursor:not-allowed}
+.vote-name{font-size:0.95rem;font-weight:700}
+.vote-check{font-size:1.2rem}
+.voted-notice{font-size:0.8rem;color:var(--ink-light)}
+
+/* ===== RESULT ===== */
+#screen-result{align-items:center;justify-content:center;gap:20px;padding:40px 20px;text-align:center}
+.winner-box{
+  background:var(--paper);border-radius:16px;padding:32px 28px;
+  max-width:360px;width:100%;
+  box-shadow:0 4px 28px rgba(26,20,16,0.1);
+}
+.winner-crown{font-size:3rem;margin-bottom:8px}
+.winner-name{font-size:1.6rem;font-weight:900}
+.winner-sub{font-size:0.82rem;color:var(--ink-light);margin-top:4px}
+.vote-results{width:100%;max-width:360px;display:flex;flex-direction:column;gap:8px}
+.vote-result-row{
+  background:var(--paper);border-radius:8px;padding:10px 14px;
+  display:flex;align-items:center;gap:10px;
+}
+.vote-result-name{font-size:0.85rem;font-weight:700;flex:1}
+.vote-result-bar-wrap{flex:2;background:var(--bg);border-radius:4px;height:8px;overflow:hidden}
+.vote-result-bar{height:100%;border-radius:4px;background:var(--win-bar);transition:width 0.6s ease}
+.vote-result-count{font-size:0.82rem;font-weight:700;color:var(--ink-light);min-width:24px;text-align:right}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:20px;left:50%;
+  transform:translateX(-50%) translateY(60px);
+  background:var(--ink);color:var(--paper);
+  padding:9px 18px;border-radius:20px;font-size:0.82rem;
+  z-index:999;transition:transform 0.3s;pointer-events:none;white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* waiting dots */
+@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+.waiting-dots span{display:inline-block;animation:pulse 1.2s infinite}
+.waiting-dots span:nth-child(2){animation-delay:0.2s}
+.waiting-dots span:nth-child(3){animation-delay:0.4s}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="game-title">
+    <h1>夢小説<br><em>カードゲーム</em></h1>
+    <p>アクシデントを乗り越えるあらすじを作ろう</p>
+  </div>
+  <div class="login-card">
+    <div class="field-group">
+      <label>あなたの名前</label>
+      <input id="input-name" type="text" placeholder="例：たろう" maxlength="10">
+    </div>
+    <button class="btn btn-primary" onclick="createRoom()">🏠 部屋を作る（ホスト）</button>
+    <div class="divider">または参加する</div>
+    <div class="field-group">
+      <label>ルームID（4桁）</label>
+      <input id="input-room" type="text" placeholder="0000" maxlength="4" style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:1.4rem;letter-spacing:0.2em">
+    </div>
+    <button class="btn btn-secondary" onclick="joinRoom()">🚪 参加する</button>
+  </div>
+</div>
+
+<!-- WAITING -->
+<div id="screen-waiting" class="screen">
+  <div style="font-size:0.82rem;color:var(--ink-light)">友達にルームIDを伝えよう！</div>
+  <div class="room-box">
+    <div class="label">ROOM ID</div>
+    <div class="room-id" id="disp-room-id">----</div>
+  </div>
+  <div class="player-list" id="player-list-wait"></div>
+  <div id="host-start-btn" style="display:none;width:100%;max-width:300px">
+    <button class="btn btn-primary" style="width:100%" onclick="hostStartGame()">🎴 ゲームスタート</button>
+  </div>
+  <div id="guest-wait-msg" style="display:none;color:var(--ink-light);font-size:0.85rem">
+    ホストがゲームを開始するのを待っています<span class="waiting-dots"><span>.</span><span>.</span><span>.</span></span>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <div class="game-header">
+    <h2>🎴 夢小説カードゲーム</h2>
+    <div class="phase-badge" id="phase-badge">進行中</div>
+  </div>
+  <div class="game-body">
+    <!-- アクシデント -->
+    <div class="accident-zone">
+      <div class="zone-label">💥 アクシデント（共通お題）</div>
+      <div id="accident-display"></div>
+    </div>
+    <!-- 場 -->
+    <div class="field-zone">
+      <div class="zone-label">📖 みんなが出したカード</div>
+      <div class="plays-list" id="field-plays"></div>
+    </div>
+  </div>
+  <!-- 手札 -->
+  <div class="hand-zone">
+    <div class="zone-label">🤚 あなたの手札（各種類1枚必ず出す）</div>
+    <div id="hand-sections"></div>
+    <div class="my-played-preview" id="my-preview" style="display:none">
+      <div class="preview-label">出したカード</div>
+      <div class="preview-chips" id="my-preview-chips"></div>
+    </div>
+    <div class="play-action" id="play-actions">
+      <button class="btn btn-accent" style="flex:1" onclick="submitMyCards()">このカードを出す</button>
+      <button class="btn btn-secondary" onclick="revealAll()" id="btn-reveal" style="display:none">全員の発表へ →</button>
+    </div>
+  </div>
+</div>
+
+<!-- REVEAL -->
+<div id="screen-reveal" class="screen">
+  <h2>📖 全員のカード発表</h2>
+  <p style="font-size:0.82rem;color:var(--ink-light);text-align:center">手札を確認してあらすじを考えよう！</p>
+  <div class="reveal-list" id="reveal-list"></div>
+  <button class="btn btn-primary" onclick="goToVote()" id="btn-go-vote" style="display:none">投票へ進む →</button>
+  <div id="reveal-wait-msg" style="display:none;font-size:0.83rem;color:var(--ink-light)">ホストが投票画面に進めます<span class="waiting-dots"><span>.</span><span>.</span><span>.</span></span></div>
+</div>
+
+<!-- VOTE -->
+<div id="screen-vote" class="screen">
+  <h2>🗳️ 投票</h2>
+  <p class="vote-subtitle">一番いいあらすじだと思う人に投票！<br>自分には入れられません</p>
+  <div class="vote-list" id="vote-list"></div>
+  <div id="voted-notice" style="display:none;font-size:0.83rem;color:var(--ink-light)">投票済み。結果を待っています<span class="waiting-dots"><span>.</span><span>.</span><span>.</span></span></div>
+  <button class="btn btn-primary" onclick="endVoting()" id="btn-end-vote" style="display:none">結果を見る →</button>
+</div>
+
+<!-- RESULT -->
+<div id="screen-result" class="screen">
+  <div class="winner-box">
+    <div class="winner-crown">👑</div>
+    <div class="winner-name" id="winner-name"></div>
+    <div class="winner-sub">が選ばれました！</div>
+  </div>
+  <div class="vote-results" id="vote-results"></div>
+  <button class="btn btn-secondary" onclick="location.reload()">もう一度遊ぶ</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getDatabase,ref,set,get,onValue,update,push}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyCjzfzvsABo9adGPJBeTuUYLwO8OrURqkI",
+  authDomain:"yumesyousetumake-game.firebaseapp.com",
+  databaseURL:"https://yumesyousetumake-game-default-rtdb.firebaseio.com",
+  projectId:"yumesyousetumake-game",
+  storageBucket:"yumesyousetumake-game.firebasestorage.app",
+  messagingSenderId:"574094958752",
+  appId:"1:574094958752:web:cb298dcd652a02e5c669c5"
+};
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+
+// ===== CARD DATA =====
+const CARDS={
+  ability:[
+    "何もなし","キスで相手の傷を癒せる","狙った相手の服がはじけ飛ぶ",
+    "相手のいる場所がわかる","恋が成就した瞬間に元の世界へ帰る",
+    "歌がとんでもなく上手い","ラッキースケベが起こりやすい",
+    "好きな相手以外に逆ハー補正","その世界で一番怪力","タイムリープできる"
+  ],
+  location:[
+    "豪華な結婚式場","好きな相手の近所の家","学校の屋上",
+    "○○しないと出られない部屋（自分で考えてOK）","好きな相手の頭上",
+    "好きな相手の家もしくは拠点の屋根裏","無人島","安いホテルの部屋",
+    "会議中の部屋のど真ん中","治安が悪い街中"
+  ],
+  relationship:[
+    "店員と客","義理の家族","主人と使用人","探偵とその依頼主","許婚",
+    "共犯者","同居人","師弟","ハニートラップのターゲットと仕掛け人","仲間"
+  ],
+  item:[
+    "救急箱","スマホ","フライパン","原作","血のついたカッター",
+    "男装セット","その世界の戸籍と身分証明書","好きな相手のアクスタ",
+    "ペアリング","定期的にとんでもない額が振り込まれる銀行口座（非課税）"
+  ],
+  accident:[
+    "相手に振られてしまった","多額の借金を返さなくてはいけなくなった",
+    "相手が記憶喪失になってしまった","相手がひどいケガをしてしまった",
+    "浮気相手っぽい人と歩いているところを見てしまった",
+    "両思いにならないと死ぬ病気にかかってしまった",
+    "闇の組織に人体実験されて不老不死になってしまった",
+    "男性恐怖症になってしまった","ぶりっこ系の悪女から目をつけられてしまった",
+    "敵に捕まってしまった"
+  ]
+};
+
+const CAT_LABEL={ability:"能力",location:"場所",relationship:"関係性",item:"持ち物",accident:"アクシデント"};
+
+// ===== STATE =====
+let myName='',myId='',roomId='',isHost=false;
+let myHand={};      // {ability:[idx,idx], location:[idx,idx], relationship:[idx,idx], item:[idx,idx]}
+let selectedCards={}; // {ability:idx, location:idx, relationship:idx, item:idx}
+let submittedCards={}; // same, after submit
+let hasSubmitted=false;
+let hasVoted=false;
+let roomRef=null;
+
+// ===== UTILS =====
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+}
+function toast(msg,dur=2500){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),dur);
+}
+function genId(){return Math.random().toString(36).slice(2,10)}
+function gen4(){return String(Math.floor(1000+Math.random()*9000))}
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+// ===== LOGIN =====
+window.createRoom=async function(){
+  myName=document.getElementById('input-name').value.trim();
+  if(!myName){toast('名前を入力してください');return}
+  myId=genId();roomId=gen4();isHost=true;
+  roomRef=ref(db,'rooms/'+roomId);
+  await set(roomRef,{
+    status:'waiting',host:myId,
+    players:{[myId]:{name:myName,id:myId}},
+    hands:{},field:{},accident:null,votes:{}
+  });
+  document.getElementById('disp-room-id').textContent=roomId;
+  showScreen('waiting');
+  document.getElementById('host-start-btn').style.display='block';
+  listenRoom();
+};
+
+window.joinRoom=async function(){
+  myName=document.getElementById('input-name').value.trim();
+  const rid=document.getElementById('input-room').value.trim();
+  if(!myName){toast('名前を入力してください');return}
+  if(rid.length!==4){toast('ルームIDは4桁です');return}
+  roomId=rid;myId=genId();isHost=false;
+  const snap=await get(ref(db,'rooms/'+roomId));
+  if(!snap.exists()){toast('そのルームは見つかりません');return}
+  roomRef=ref(db,'rooms/'+roomId);
+  await update(ref(db,'rooms/'+roomId+'/players'),{[myId]:{name:myName,id:myId}});
+  document.getElementById('disp-room-id').textContent=roomId;
+  showScreen('waiting');
+  document.getElementById('guest-wait-msg').style.display='block';
+  listenRoom();
+};
+
+// ===== START GAME (host) =====
+window.hostStartGame=async function(){
+  const snap=await get(ref(db,'rooms/'+roomId));
+  const data=snap.val();
+  const playerIds=Object.keys(data.players||{});
+  if(playerIds.length<1){toast('プレイヤーが必要です');return}
+
+  // Deal cards: each type shuffle, assign 2 per player (round-robin)
+  const hands={};
+  playerIds.forEach(pid=>hands[pid]={ability:[],location:[],relationship:[],item:[]});
+
+  ['ability','location','relationship','item'].forEach(cat=>{
+    const indices=shuffle([0,1,2,3,4,5,6,7,8,9]);
+    playerIds.forEach((pid,i)=>{
+      hands[pid][cat]=[indices[i*2],indices[i*2+1]];
+    });
+  });
+
+  // Pick accident
+  const accIdx=Math.floor(Math.random()*10);
+
+  await update(roomRef,{
+    status:'playing',hands,accident:accIdx,field:{},votes:{},
+    playerOrder:playerIds
+  });
+};
+
+// ===== ROOM LISTENER =====
+function listenRoom(){
+  onValue(ref(db,'rooms/'+roomId),snap=>{
+    if(!snap.exists())return;
+    const data=snap.val();
+    renderWaiting(data);
+    if(data.status==='playing'){
+      if(data.hands&&data.hands[myId])myHand=data.hands[myId];
+      renderGame(data);
+      showScreen('game');
+    }
+    if(data.status==='reveal'){
+      renderReveal(data);
+      showScreen('reveal');
+    }
+    if(data.status==='voting'){
+      renderVote(data);
+      showScreen('vote');
+    }
+    if(data.status==='result'){
+      renderResult(data);
+      showScreen('result');
+    }
+  });
+}
+
+function renderWaiting(data){
+  const list=document.getElementById('player-list-wait');
+  if(!list)return;
+  list.innerHTML='';
+  Object.values(data.players||{}).forEach(p=>{
+    const div=document.createElement('div');
+    div.className='player-item';
+    div.innerHTML=`<div class="player-dot"></div><span>${p.name}</span>`+
+      (p.id===myId?'<span class="you-badge">あなた</span>':'');
+    list.appendChild(div);
+  });
+}
+
+// ===== GAME SCREEN =====
+function renderGame(data){
+  // Accident
+  const accEl=document.getElementById('accident-display');
+  if(data.accident!==null&&data.accident!==undefined){
+    const txt=CARDS.accident[data.accident];
+    accEl.innerHTML=`<div class="accident-card"><div class="cat-dot"></div><div class="card-text">${txt}</div></div>`;
+  }
+
+  // Field
+  const fieldEl=document.getElementById('field-plays');
+  fieldEl.innerHTML='';
+  const field=data.field||{};
+  const players=data.players||{};
+  const hasAny=Object.values(field).some(v=>v&&Object.keys(v).length>0);
+  if(!hasAny){
+    fieldEl.innerHTML='<p class="empty-msg">まだ誰もカードを出していません</p>';
+  }else{
+    Object.entries(field).forEach(([pid,played])=>{
+      if(!played||Object.keys(played).length===0)return;
+      const pname=players[pid]?.name||'？';
+      const entry=document.createElement('div');
+      entry.className='play-entry';
+      const chips=Object.entries(played).map(([cat,idx])=>
+        `<span class="card-chip ${cat}"><span class="chip-cat">${CAT_LABEL[cat]}</span>${CARDS[cat][idx]}</span>`
+      ).join('');
+      entry.innerHTML=`<div class="play-entry-header"><span class="play-entry-name">${pname}</span></div><div class="play-cards-row">${chips}</div>`;
+      fieldEl.appendChild(entry);
+    });
+  }
+
+  // Check if all submitted
+  const playerIds=data.playerOrder||[];
+  const allSubmitted=playerIds.every(pid=>data.field&&data.field[pid]&&Object.keys(data.field[pid]).length>0);
+  const phaseBadge=document.getElementById('phase-badge');
+  if(allSubmitted){
+    phaseBadge.textContent='全員提出済み';
+    if(isHost){
+      document.getElementById('btn-reveal').style.display='block';
+    }
+  }else{
+    const count=Object.values(data.field||{}).filter(v=>v&&Object.keys(v).length>0).length;
+    phaseBadge.textContent=`提出 ${count}/${playerIds.length}`;
+    document.getElementById('btn-reveal').style.display='none';
+  }
+
+  renderHand(data);
+}
+
+function renderHand(data){
+  const sectionsEl=document.getElementById('hand-sections');
+  sectionsEl.innerHTML='';
+
+  ['ability','location','relationship','item'].forEach(cat=>{
+    const indices=myHand[cat]||[];
+    const sec=document.createElement('div');
+    sec.className='hand-section';
+    sec.innerHTML=`<div class="hand-section-title ${cat}">${CAT_LABEL[cat]}</div><div class="hand-row" id="hr-${cat}"></div>`;
+    sectionsEl.appendChild(sec);
+    const row=sec.querySelector(`#hr-${cat}`);
+    indices.forEach(idx=>{
+      const card=document.createElement('button');
+      card.className='hand-card '+cat;
+      const isPlayed=hasSubmitted&&submittedCards[cat]===idx;
+      const isSelected=!hasSubmitted&&selectedCards[cat]===idx;
+      if(hasSubmitted){card.classList.add(isPlayed?'selected':'used')}
+      else if(isSelected){card.classList.add('selected')}
+      card.textContent=CARDS[cat][idx];
+      if(!hasSubmitted) card.onclick=()=>selectCard(cat,idx);
+      else card.disabled=true;
+      row.appendChild(card);
+    });
+  });
+
+  // Preview
+  const previewEl=document.getElementById('my-preview');
+  const previewChips=document.getElementById('my-preview-chips');
+  if(hasSubmitted&&Object.keys(submittedCards).length>0){
+    previewEl.style.display='block';
+    previewChips.innerHTML=Object.entries(submittedCards).map(([cat,idx])=>
+      `<span class="card-chip ${cat}"><span class="chip-cat">${CAT_LABEL[cat]}</span>${CARDS[cat][idx]}</span>`
+    ).join('');
+  }else{
+    previewEl.style.display='none';
+  }
+
+  // Submit button state
+  const submitBtn=document.querySelector('.btn-accent');
+  if(submitBtn){
+    const allSelected=Object.keys(selectedCards).length===4;
+    submitBtn.disabled=hasSubmitted||!allSelected;
+    submitBtn.textContent=hasSubmitted?'提出済み✓':'このカードを出す';
+  }
+}
+
+function selectCard(cat,idx){
+  if(hasSubmitted)return;
+  if(selectedCards[cat]===idx){delete selectedCards[cat]}
+  else{selectedCards[cat]=idx}
+  renderHand({field:null}); // light re-render
+  // update field display (re-read from DOM is fine)
+  const allSelected=Object.keys(selectedCards).length===4;
+  const submitBtn=document.querySelector('.btn-accent');
+  if(submitBtn)submitBtn.disabled=!allSelected;
+}
+
+window.submitMyCards=async function(){
+  if(Object.keys(selectedCards).length!==4){toast('4種類すべてから1枚ずつ選んでください');return}
+  submittedCards={...selectedCards};
+  hasSubmitted=true;
+  await update(ref(db,'rooms/'+roomId+'/field'),{[myId]:submittedCards});
+  toast('カードを提出しました！');
+  // re-render hand
+  const snap=await get(roomRef);
+  renderGame(snap.val());
+};
+
+window.revealAll=async function(){
+  await update(roomRef,{status:'reveal'});
+};
+
+// ===== REVEAL =====
+function renderReveal(data){
+  const list=document.getElementById('reveal-list');
+  list.innerHTML='';
+  const players=data.players||{};
+  const field=data.field||{};
+  Object.entries(players).forEach(([pid,p])=>{
+    const played=field[pid]||{};
+    const entry=document.createElement('div');
+    entry.className='reveal-entry';
+    const chips=Object.entries(played).map(([cat,idx])=>
+      `<span class="card-chip ${cat}"><span class="chip-cat">${CAT_LABEL[cat]}</span>${CARDS[cat][idx]}</span>`
+    ).join('');
+    entry.innerHTML=`<div class="reveal-entry-name">${p.name}</div><div class="reveal-chips">${chips||'<span style="color:var(--ink-light);font-size:0.8rem">提出なし</span>'}</div>`;
+    list.appendChild(entry);
+  });
+  if(isHost){
+    document.getElementById('btn-go-vote').style.display='block';
+    document.getElementById('reveal-wait-msg').style.display='none';
+  }else{
+    document.getElementById('btn-go-vote').style.display='none';
+    document.getElementById('reveal-wait-msg').style.display='block';
+  }
+}
+
+window.goToVote=async function(){
+  await update(roomRef,{status:'voting'});
+};
+
+// ===== VOTE =====
+function renderVote(data){
+  const list=document.getElementById('vote-list');
+  list.innerHTML='';
+  const players=data.players||{};
+  const votes=data.votes||{};
+  const myVote=votes[myId];
+  hasVoted=!!myVote;
+
+  Object.entries(players).forEach(([pid,p])=>{
+    const isMe=pid===myId;
+    const item=document.createElement('div');
+    item.className='vote-item'+(myVote===pid?' voted':'')+(isMe?' disabled-vote':'');
+    item.innerHTML=`<span class="vote-name">${p.name}${isMe?' (あなた)':''}</span><span class="vote-check">${myVote===pid?'✓':''}</span>`;
+    if(!isMe&&!hasVoted) item.onclick=()=>vote(pid);
+    list.appendChild(item);
+  });
+
+  if(hasVoted){
+    document.getElementById('voted-notice').style.display='block';
+    if(isHost){
+      document.getElementById('btn-end-vote').style.display='block';
+    }
+  }else{
+    document.getElementById('voted-notice').style.display='none';
+    document.getElementById('btn-end-vote').style.display='none';
+  }
+}
+
+async function vote(targetId){
+  await update(ref(db,'rooms/'+roomId+'/votes'),{[myId]:targetId});
+  hasVoted=true;
+  toast('投票しました！');
+}
+
+window.endVoting=async function(){
+  await update(roomRef,{status:'result'});
+};
+
+// ===== RESULT =====
+function renderResult(data){
+  const votes=data.votes||{};
+  const players=data.players||{};
+  // count votes
+  const counts={};
+  Object.values(votes).forEach(pid=>{counts[pid]=(counts[pid]||0)+1});
+  // find winner
+  let winner=null,max=0;
+  Object.entries(counts).forEach(([pid,c])=>{if(c>max){max=c;winner=pid}});
+  document.getElementById('winner-name').textContent=winner?players[winner]?.name:'引き分け！';
+
+  const resultsEl=document.getElementById('vote-results');
+  resultsEl.innerHTML='';
+  const total=Object.values(counts).reduce((a,b)=>a+b,0)||1;
+  Object.entries(players).forEach(([pid,p])=>{
+    const c=counts[pid]||0;
+    const pct=Math.round(c/total*100);
+    const row=document.createElement('div');
+    row.className='vote-result-row';
+    row.innerHTML=`<span class="vote-result-name">${p.name}</span>
+      <div class="vote-result-bar-wrap"><div class="vote-result-bar" style="width:${pct}%"></div></div>
+      <span class="vote-result-count">${c}票</span>`;
+    resultsEl.appendChild(row);
+  });
+}
+</script>
+</body>
+</html>
